@@ -49,7 +49,7 @@ def build_model(hp:dict):
             model.add(BatchNormalization())
         model.add(Dropout(dp_rate))
     model.add(Dense(55, kernel_initializer='normal', activation='linear'))
-    initial_learning_rate = hp["lr"]
+    initial_learning_rate = hp["learning_rate"]
     optimizer = hp["optimizer"]
     if optimizer == "adam":
         optimizer = keras.optimizers.Adam(learning_rate = initial_learning_rate)
@@ -86,7 +86,7 @@ def main():
     val_ds = val_ds.prefetch(tf.data.AUTOTUNE)
     logging.debug("Data loaded")
     model = build_model(wandb.config)
-    model.fit(train_ds, validation_data = val_ds, epochs = num_epochs, batch_size = batch_size, callbacks = [WandbMetricsLogger(), WandbModelCheckpoint('tuning_directory')])
+    model.fit(train_ds, validation_data = val_ds, epochs = num_epochs, callbacks = [WandbMetricsLogger(), WandbModelCheckpoint('tuning_directory')])
 
 sweep_configuration = {
     "method": "random",
@@ -96,7 +96,7 @@ sweep_configuration = {
         "shuffle_buffer": {"values": [20000, 40000]},
         "leak": {"min": 0, "max": 0.4},
         "dropout": {"min": 0, "max": 0.25},
-        "learning_rate": {'distribution': 'log_uniform_values', "min": 1e-6, "min": 1e-3},
+        "learning_rate": {'distribution': 'log_uniform_values', "min": 1e-6, "max": 1e-3},
         "num_layers": {'distribution': 'int_uniform', "min": 4, 'max': 11},
         "hidden_units": {'distribution': 'int_uniform', "min": 200, 'max': 480},
         "optimizer": {"values": ["adam", "RAdam", "QHAdam"]},
