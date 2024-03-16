@@ -17,7 +17,7 @@ import logging
 
 print('imported packages')
 
-data_path  = '/dev/shm/'
+data_path = "/ocean/projects/atm200007p/jlin96/nnspreadtesting_2/overfitmepls/training/training_data/"
 train_input = np.load(data_path + 'train_input.npy', mmap_mode='r')
 train_target = np.load(data_path + 'train_target.npy', mmap_mode='r')
 val_input = np.load(data_path + 'val_input.npy', mmap_mode='r')
@@ -53,8 +53,6 @@ def build_model(hp:dict):
     optimizer = hp["optimizer"]
     if optimizer == "adam":
         optimizer = keras.optimizers.Adam(learning_rate = initial_learning_rate)
-    elif optimizer == "RMSprop":
-        optimizer = keras.optimizers.RMSprop(learning_rate = initial_learning_rate)
     elif optimizer == "RAdam":
         optimizer = tfa.optimizers.RectifiedAdam(learning_rate = initial_learning_rate)
     elif optimizer == "QHAdam":
@@ -98,10 +96,10 @@ sweep_configuration = {
         "shuffle_buffer": {"values": [20000, 40000]},
         "leak": {"min": 0, "max": 0.4},
         "dropout": {"min": 0, "max": 0.25},
-        "learning_rate": {"min": 1e-6, "min": 1e-3},
+        "learning_rate": {'distribution': 'log_uniform_values', "min": 1e-6, "min": 1e-3},
         "num_layers": {'distribution': 'int_uniform', "min": 4, 'max': 11},
         "hidden_units": {'distribution': 'int_uniform', "min": 200, 'max': 480},
-        "optimizer": {"adam", "RAdam", "QHAdam"},
+        "optimizer": {"values": ["adam", "RAdam", "QHAdam"]},
         "batch_normalization": {"values": [True, False]}
     }
 }

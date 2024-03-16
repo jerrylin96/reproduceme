@@ -10,7 +10,6 @@
 #SBATCH --mail-user=jerryl9@uci.edu
 #SBATCH -t 5:00:00
 
-cp -v /ocean/projects/atm200007p/jlin96/nnspreadtesting_2/overfitmepls/training/training_data/* /dev/shm
 source /opt/packages/anaconda3/etc/profile.d/conda.sh
 module load anaconda3
 conda activate wandb
