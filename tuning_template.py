@@ -98,21 +98,5 @@ def main():
     model.fit(train_ds, validation_data = (val_input, val_target), epochs = num_epochs, callbacks = [WandbMetricsLogger(), WandbModelCheckpoint('tuning_directory')])
     run.finish()
 
-sweep_configuration = {
-    "method": "random",
-    "metric": {"goal": "minimize", "name": "val_loss"},
-    "parameters": {
-        "batch_size": {"values": [5000, 10000, 20000]},
-        "shuffle_buffer": {"values": [20000, 40000]},
-        "leak": {"min": 0.0, "max": 0.4},
-        "dropout": {"min": 0.0, "max": 0.25},
-        "learning_rate": {'distribution': 'log_uniform_values', "min": 1e-6, "max": 1e-3},
-        "num_layers": {'distribution': 'int_uniform', "min": 4, 'max': 11},
-        "hidden_units": {'distribution': 'int_uniform', "min": 200, 'max': 480},
-        "optimizer": {"values": ["adam", "RAdam"]},
-        "batch_normalization": {"values": [True, False]}
-    }
-}
-
 # 3: Start the sweep
 wandb.agent("SWEEP_ID_HERE", function=main, count=RUNS_PER_GPU_HERE)
