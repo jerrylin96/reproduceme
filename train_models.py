@@ -10,10 +10,9 @@ clock_time = sys.argv[4]
 
 sweep_configuration = {
     "method": "random",
-    "metric": {"goal": "minimize", "name": "val_loss"},
+    "metric": {"goal": "minimize", "name": "final_val_loss"},
     "parameters": {
-        "batch_size": {"values": [5000, 10000, 20000]},
-        "shuffle_buffer": {"values": [20000, 40000]},
+        "batch_size": {"value": 5000},
         "leak": {"min": 0.0, "max": 0.4},
         "dropout": {"min": 0.0, "max": 0.25},
         "learning_rate": {'distribution': 'log_uniform_values', "min": 1e-6, "max": 1e-3},

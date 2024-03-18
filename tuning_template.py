@@ -76,26 +76,39 @@ def build_model(hp:dict):
     model.compile(optimizer = optimizer, loss = 'mse', metrics = ["mse"])
     return model
 
-def data_generator(inputs, targets):
-    # Iterate over the dataset in batches
-    for i in range(0, len(inputs)):
-        # Yield a batch of data
-        yield inputs[i], targets[i]
+assert(train_input.shape[0] == train_target.shape[0])
+num_samples = train_input.shape[0]
+
+def data_generator(inputs, targets, batch_size, drop_remainder = True):
+    indices = np.arange(len(inputs))
+    if drop_remainder:
+        end_index = len(inputs)//batch_size*batch_size
+    else:
+        end_index = len(inputs)
+    while True:
+        np.random.shuffle(indices)
+        for i in range(0, end_index, batch_size):
+            batch_indices = indices[i:i+batch_size]
+            yield inputs[batch_indices,:], targets[batch_indices,:]
 
 def main():
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
     run = wandb.init(project=project_name)
     batch_size = wandb.config['batch_size']
-    shuffle_buffer = wandb.config['shuffle_buffer']
     with tf.device('/CPU:0'):
+        shuffled_indices = np.random.permutation(train_input.shape[0])
         train_ds = tf.data.Dataset.from_generator(
-            lambda: data_generator(train_input, train_target),
-                                output_signature=(tf.TensorSpec(shape=(175), dtype=tf.float32),
-                                                    tf.TensorSpec(shape=(55), dtype=tf.float32))).shuffle(buffer_size=shuffle_buffer).batch(batch_size)
+            lambda: data_generator(train_input[shuffled_indices], train_target[shuffled_indices], batch_size),
+                                output_signature=(tf.TensorSpec(shape=(None, 175), dtype=tf.float32),
+                                                  tf.TensorSpec(shape=(None, 55), dtype=tf.float32)))
     train_ds = train_ds.prefetch(tf.data.AUTOTUNE)
     logging.debug("Data loaded")
     model = build_model(wandb.config)
-    model.fit(train_ds, validation_data = (val_input, val_target), epochs = num_epochs, callbacks = [WandbMetricsLogger(), WandbModelCheckpoint('tuning_directory')])
+    model.fit(train_ds, validation_data = (val_input, val_target), epochs = num_epochs, callbacks = [WandbMetricsLogger(), \
+                                                                                                     WandbModelCheckpoint('tuning_directory'), \
+                                                                                                     callbacks.EarlyStopping('val_loss', patience=10, restore_best_weights=True)])
+    final_val_loss, _ = model.evaluate(val_input, val_target)
+    wandb.log({'final_val_loss': final_val_loss})
     run.finish()
 
 # 3: Start the sweep
