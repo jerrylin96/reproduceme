@@ -16,7 +16,7 @@ from wandb.keras import WandbMetricsLogger, WandbModelCheckpoint
 import logging
 
 os.environ["CUDA_VISIBLE_DEVICES"] = os.environ['SLURM_LOCALID']
-
+print('CUDA_VISIBLE_DEVICES: ' + str(os.environ["CUDA_VISIBLE_DEVICES"]))
 print('imported packages')
 
 os.environ['TF_CUDNN_DETERMINISTIC'] = '1'
@@ -40,7 +40,7 @@ val_input = np.load(data_path + 'val_input.npy')
 val_target = np.load(data_path + 'val_target.npy')
 
 num_epochs = 2
-project_name = 'multigpu'
+project_name = 'PROJECT_NAME_HERE'
 
 # Define sweep config
 wandb.login()
@@ -99,4 +99,4 @@ def main():
     run.finish()
 
 # 3: Start the sweep
-wandb.agent("SWEEP_ID_HERE", function=main, count=RUNS_PER_GPU_HERE)
+wandb.agent("SWEEP_ID_HERE", function=main, project = project_name, count=RUNS_PER_GPU_HERE)
