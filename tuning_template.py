@@ -19,10 +19,10 @@ os.environ["CUDA_VISIBLE_DEVICES"] = os.environ['SLURM_LOCALID']
 print('CUDA_VISIBLE_DEVICES: ' + str(os.environ["CUDA_VISIBLE_DEVICES"]))
 print('imported packages')
 
-os.environ['TF_CUDNN_DETERMINISTIC'] = '1'
-random.seed(hash('setting random seeds') % 2**32 - 1)
-np.random.seed(hash('improves reproducibility') % 2**32 - 1)
-tf.random.set_seed(hash('by removing stochasticity') % 2**32 - 1)
+# os.environ['TF_CUDNN_DETERMINISTIC'] = '1'
+# random.seed(hash('setting random seeds') % 2**32 - 1)
+# np.random.seed(hash('improves reproducibility') % 2**32 - 1)
+# tf.random.set_seed(hash('by removing stochasticity') % 2**32 - 1)
 gpus = tf.config.experimental.list_physical_devices('GPU')
 if gpus:
     try:
@@ -39,7 +39,6 @@ train_target = np.load(data_path + 'train_target.npy', mmap_mode='r')
 val_input = np.load(data_path + 'val_input.npy')
 val_target = np.load(data_path + 'val_target.npy')
 
-num_epochs = 2
 project_name = 'PROJECT_NAME_HERE'
 
 # Define sweep config
@@ -85,16 +84,16 @@ def data_generator(inputs, targets, batch_size, drop_remainder = True):
         end_index = len(inputs)//batch_size*batch_size
     else:
         end_index = len(inputs)
-    while True:
-        np.random.shuffle(indices)
-        for i in range(0, end_index, batch_size):
-            batch_indices = indices[i:i+batch_size]
-            yield inputs[batch_indices,:], targets[batch_indices,:]
+    np.random.shuffle(indices)
+    for i in range(0, end_index, batch_size):
+        batch_indices = indices[i:i+batch_size]
+        yield inputs[batch_indices,:], targets[batch_indices,:]
 
 def main():
     logging.basicConfig(level=logging.INFO)
     run = wandb.init(project=project_name)
     batch_size = wandb.config['batch_size']
+    num_epochs = wandb.config['num_epochs']
     with tf.device('/CPU:0'):
         train_ds = tf.data.Dataset.from_generator(
             lambda: data_generator(train_input, train_target, batch_size),
@@ -103,11 +102,9 @@ def main():
     train_ds = train_ds.prefetch(tf.data.AUTOTUNE)
     logging.debug("Data loaded")
     model = build_model(wandb.config)
-    model.fit(train_ds, validation_data = (val_input, val_target), epochs = num_epochs, steps_per_epoch = num_samples // batch_size, \
-                                                                                        callbacks = [WandbMetricsLogger(), \
-                                                                                                     WandbModelCheckpoint('wandb_checkpoints/' + run.name), \
-                                                                                                     callbacks.EarlyStopping('val_loss', patience=10, restore_best_weights=True)])
-    final_val_loss, _ = model.evaluate(val_input, val_target)
+    model.fit(train_ds, validation_data = (val_input, val_target), epochs = num_epochs,  callbacks = [WandbMetricsLogger(), \
+                                                                                                      callbacks.EarlyStopping('val_loss', patience=10, restore_best_weights=True)])
+    final_val_loss, _ = model.evaluate(val_input, val_target, batch_size = batch_size)
     wandb.log({'final_val_loss': final_val_loss})
     model.save('model_directory/' + run.name + '.h5')
     run.finish()

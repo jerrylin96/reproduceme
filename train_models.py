@@ -12,6 +12,7 @@ sweep_configuration = {
     "method": "random",
     "metric": {"goal": "minimize", "name": "final_val_loss"},
     "parameters": {
+        "num_epochs": {"value": 2},
         "batch_size": {"value": 5000},
         "leak": {"min": 0.0, "max": 0.4},
         "dropout": {"min": 0.0, "max": 0.25},
