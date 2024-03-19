@@ -96,15 +96,15 @@ def main():
     run = wandb.init(project=project_name)
     batch_size = wandb.config['batch_size']
     with tf.device('/CPU:0'):
-        shuffled_indices = np.random.permutation(train_input.shape[0])
         train_ds = tf.data.Dataset.from_generator(
-            lambda: data_generator(train_input[shuffled_indices], train_target[shuffled_indices], batch_size),
+            lambda: data_generator(train_input, train_target, batch_size),
                                 output_signature=(tf.TensorSpec(shape=(None, 175), dtype=tf.float32),
                                                   tf.TensorSpec(shape=(None, 55), dtype=tf.float32)))
     train_ds = train_ds.prefetch(tf.data.AUTOTUNE)
     logging.debug("Data loaded")
     model = build_model(wandb.config)
-    model.fit(train_ds, validation_data = (val_input, val_target), epochs = num_epochs, callbacks = [WandbMetricsLogger(), \
+    model.fit(train_ds, validation_data = (val_input, val_target), epochs = num_epochs, steps_per_epoch = num_samples // batch_size, \
+                                                                                        callbacks = [WandbMetricsLogger(), \
                                                                                                      WandbModelCheckpoint('wandb_checkpoints/' + run.name), \
                                                                                                      callbacks.EarlyStopping('val_loss', patience=10, restore_best_weights=True)])
     final_val_loss, _ = model.evaluate(val_input, val_target)
