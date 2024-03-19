@@ -40,6 +40,7 @@ val_input = np.load(data_path + 'val_input.npy')
 val_target = np.load(data_path + 'val_target.npy')
 
 num_epochs = 2
+model_num = 0
 project_name = 'PROJECT_NAME_HERE'
 
 # Define sweep config
@@ -93,7 +94,8 @@ def data_generator(inputs, targets, batch_size, drop_remainder = True):
 
 def main():
     logging.basicConfig(level=logging.INFO)
-    run = wandb.init(project=project_name)
+    runid = 'gpu_' + str(os.environ['SLURM_LOCALID']) + 'model_' + str(model_num)
+    run = wandb.init(project=project_name, name = runid)
     batch_size = wandb.config['batch_size']
     with tf.device('/CPU:0'):
         shuffled_indices = np.random.permutation(train_input.shape[0])
@@ -105,10 +107,12 @@ def main():
     logging.debug("Data loaded")
     model = build_model(wandb.config)
     model.fit(train_ds, validation_data = (val_input, val_target), epochs = num_epochs, callbacks = [WandbMetricsLogger(), \
-                                                                                                     WandbModelCheckpoint('tuning_directory'), \
+                                                                                                     WandbModelCheckpoint('wandb_checkpoints/' + runid), \
                                                                                                      callbacks.EarlyStopping('val_loss', patience=10, restore_best_weights=True)])
     final_val_loss, _ = model.evaluate(val_input, val_target)
     wandb.log({'final_val_loss': final_val_loss})
+    model.save('model_directory/' + runid + '.h5')
+    model_num += 1
     run.finish()
 
 # 3: Start the sweep
